@@ -1,155 +1,95 @@
-import React, { useMemo } from 'react';
-import { X, Users, Trophy, Target } from 'lucide-react';
+import React, { useState } from 'react';
 
-const DraftBoard = ({ draftedPlayers, onUndraftPlayer, draftPosition, leagueSize }) => {
-  const rounds = useMemo(() => {
-    const maxRounds = Math.ceil(draftedPlayers.length / leagueSize) + 1;
-    return Array.from({ length: maxRounds }, (_, i) => i + 1);
-  }, [draftedPlayers.length, leagueSize]);
+const DraftBoard = ({ draftedPlayers, onUndraftPlayer }) => {
+  const [draftPosition, setDraftPosition] = useState(1);
+  const [leagueSize, setLeagueSize] = useState(12);
 
-  const getDraftPick = (round, pick) => {
-    if (round % 2 === 1) {
-      // Odd rounds: 1, 2, 3, 4...
-      return (round - 1) * leagueSize + pick;
-    } else {
-      // Even rounds: 24, 23, 22, 21... (for 12-team league)
-      return (round - 1) * leagueSize + (leagueSize - pick + 1);
-    }
+  const handleUndraft = (playerId) => {
+    onUndraftPlayer(playerId);
   };
 
-  const getPlayerAtPick = (round, pick) => {
-    const draftPickNumber = getDraftPick(round, pick);
-    return draftedPlayers.find(p => p.draftPick === draftPickNumber);
+  const getNextPick = () => {
+    return Math.ceil((draftedPlayers.length + 1) / leagueSize);
   };
 
-  const getPositionCounts = () => {
-    return draftedPlayers.reduce((counts, player) => {
-      counts[player.position] = (counts[player.position] || 0) + 1;
-      return counts;
-    }, {});
+  const getPickInRound = () => {
+    return ((draftedPlayers.length) % leagueSize) + 1;
   };
-
-  const positionCounts = getPositionCounts();
 
   return (
     <div className="draft-board">
-      <div className="draft-header">
-        <h2>Draft Board</h2>
-        <p>Track your draft progress and team composition</p>
-      </div>
-
-      <div className="draft-overview">
-        <div className="overview-cards">
-          <div className="overview-card">
-            <Users size={24} />
-            <div>
-              <h3>League Size</h3>
-              <p>{leagueSize} teams</p>
-            </div>
-          </div>
-          <div className="overview-card">
-            <Target size={24} />
-            <div>
-              <h3>Your Position</h3>
-              <p>#{draftPosition}</p>
-            </div>
-          </div>
-          <div className="overview-card">
-            <Trophy size={24} />
-            <div>
-              <h3>Players Drafted</h3>
-              <p>{draftedPlayers.length}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="draft-board-container">
-        <div className="draft-rounds">
-          {rounds.map(round => (
-            <div key={round} className="draft-round">
-              <div className="round-header">
-                <h3>Round {round}</h3>
-              </div>
-              <div className="round-picks">
-                {Array.from({ length: leagueSize }, (_, i) => i + 1).map(pick => {
-                  const player = getPlayerAtPick(round, pick);
-                  const isYourPick = pick === draftPosition;
-                  
-                  return (
-                    <div 
-                      key={pick} 
-                      className={`draft-pick ${isYourPick ? 'your-pick' : ''} ${player ? 'has-player' : ''}`}
-                    >
-                      <div className="pick-number">{pick}</div>
-                      {player ? (
-                        <div className="player-info">
-                          <div className="player-name">{player.name}</div>
-                          <div className="player-details">
-                            <span className="position">{player.position}</span>
-                            <span className="team">{player.team}</span>
-                          </div>
-                          <button
-                            className="undraft-btn"
-                            onClick={() => onUndraftPlayer(player.id)}
-                            title="Remove from draft"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="empty-pick">
-                          {isYourPick ? 'Your Pick' : 'Available'}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="team-composition">
-        <h3>Your Team Composition</h3>
-        <div className="position-breakdown">
-          {['QB', 'RB', 'WR', 'TE'].map(pos => (
-            <div key={pos} className="position-count">
-              <span className="position-label">{pos}:</span>
-              <span className="position-number">{positionCounts[pos] || 0}</span>
-            </div>
-          ))}
+      <h3>Draft Board</h3>
+      
+      <div className="draft-settings">
+        <div className="setting-group">
+          <label htmlFor="leagueSize">League Size:</label>
+          <select
+            id="leagueSize"
+            value={leagueSize}
+            onChange={(e) => setLeagueSize(Number(e.target.value))}
+          >
+            <option value={8}>8 Teams</option>
+            <option value={10}>10 Teams</option>
+            <option value={12}>12 Teams</option>
+            <option value={14}>14 Teams</option>
+            <option value={16}>16 Teams</option>
+          </select>
         </div>
         
-        {draftedPlayers.length > 0 && (
-          <div className="drafted-players-list">
-            <h4>Drafted Players</h4>
-            <div className="players-grid">
-              {draftedPlayers.map(player => (
-                <div key={player.id} className="drafted-player-card">
-                  <div className="player-header">
-                    <span className="player-name">{player.name}</span>
-                    <button
-                      className="remove-btn"
-                      onClick={() => onUndraftPlayer(player.id)}
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                  <div className="player-details">
-                    <span className="position">{player.position}</span>
-                    <span className="team">{player.team}</span>
-                  </div>
-                  <div className="draft-info">
-                    <span>Round {player.draftRound}, Pick {player.draftPick}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <div className="setting-group">
+          <label htmlFor="draftPosition">Your Draft Position:</label>
+          <select
+            id="draftPosition"
+            value={draftPosition}
+            onChange={(e) => setDraftPosition(Number(e.target.value))}
+          >
+            {Array.from({ length: leagueSize }, (_, i) => (
+              <option key={i + 1} value={i + 1}>
+                {i + 1}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
+
+      <div className="draft-status">
+        <p>
+          <strong>Next Pick:</strong> Round {getNextPick()}, Pick {getPickInRound()}
+        </p>
+        <p>
+          <strong>Your Next Pick:</strong> Round {Math.ceil((draftedPlayers.length + 1) / leagueSize)}, 
+          Pick {draftPosition}
+        </p>
+      </div>
+
+      {draftedPlayers.length === 0 ? (
+        <div className="empty-state">
+          <h4>No players drafted yet</h4>
+          <p>Start drafting players from the Player Rankings tab!</p>
+        </div>
+      ) : (
+        <div className="drafted-players">
+          {draftedPlayers.map((player, index) => (
+            <div key={player.id} className="drafted-player">
+              <div className="player-info">
+                <div className="player-name">{player.name}</div>
+                <div className="player-details">
+                  {player.position} • {player.team} • Round {Math.ceil((index + 1) / leagueSize)}, Pick {((index) % leagueSize) + 1}
+                </div>
+              </div>
+              <div className="draft-pick">
+                #{index + 1}
+              </div>
+              <button
+                className="undraft-button"
+                onClick={() => handleUndraft(player.id)}
+              >
+                Undraft
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
